@@ -125,6 +125,48 @@ TIME_COPY_OVERHEAD(kOneM, "copy 1 MB")
 TIME_COPY_OVERHEAD(kHundredM, "copy 100 MB")
 TIME_COPY_OVERHEAD(kOneG, "copy 1 GB")
 
+// min-max test
+// TODO: Optimize to use hierarchical min-max reduction
+__global__ void minMaxKernel(int *data, int n, int *min, int *max)
+{
+    int i = blockIdx.x * blockDim.x + threadIdx.x;
+    if (i < n)
+    {
+        atomicMin(min, data[i]);
+        atomicMax(max, data[i]);
+    }
+}
+
+void TIME_minmax_kernel(int n, std::string label)
+{
+    int *h_data = new int[n];
+    for (int i = 0; i < n; i++)
+        h_data[i] = rand() % 1000;
+
+    int *d_data = nullptr, *d_min = nullptr, *d_max = nullptr;
+    checkCudaErrors(cudaMalloc(&d_data, n * sizeof(int)));
+    checkCudaErrors(cudaMalloc(&d_min, sizeof(int)));
+    checkCudaErrors(cudaMalloc(&d_max, sizeof(int)));
+
+    checkCudaErrors(cudaMemcpy(d_data, h_data, n * sizeof(int), cudaMemcpyHostToDevice));
+    checkCudaErrors(cudaMemset(d_min, 0x7f, sizeof(int)));
+    checkCudaErrors(cudaMemset(d_max, 0x80, sizeof(int)));
+
+    TIMER_EVENTS_CREATE
+    TIMER_EVENTS_RECORD_START
+
+    minMaxKernel<<<(n + 255) / 256, 256>>>(d_data, n, d_min, d_max);
+    cudaDeviceSynchronize();
+
+    TIMER_EVENTS_RECORD_STOP
+    REPORT_TIME(label.c_str())
+
+    delete[] h_data;
+    checkCudaErrors(cudaFree(d_data));
+    checkCudaErrors(cudaFree(d_min));
+    checkCudaErrors(cudaFree(d_max));
+}
+
 // main test runner
 
 void run_tests()
@@ -145,4 +187,14 @@ void run_tests()
     TIME_kOneMbyte_copy_overhead();
     TIME_kHundredMbyte_copy_overhead();
     TIME_kOneGbyte_copy_overhead();
+
+    // min-max test
+    TIME_minmax_kernel(kOneM, "find min max in a 1 MB array");
+    TIME_minmax_kernel(kHundredM, "find min max in a 100 MB array");
 }
+
+// TODO: Add more tests
+// 1. Finding min-max in a kernel
+// 2. Sorting in a kernel
+// 3. Compilation time of an empty kernel
+// 4. Just walking over different sizes of datasets on the GPU
