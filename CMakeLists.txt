@@ -6,4 +6,4 @@ find_package(CUDA REQUIRED)
 
 add_executable(gpu_benchmarks source/main.cu source/driver.cpp)
 set_target_properties(gpu_benchmarks PROPERTIES CUDA_ARCHITECTURES 75)
-
+target_link_libraries(gpu_benchmarks ${CUDA_LIBRARIES})
