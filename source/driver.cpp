@@ -1,8 +1,8 @@
 #include <iostream>
 using namespace std;
-int caller();
+void run_tests();
 int main()
 {
     cout << "Running the gpu benchmarks." << endl;
-    caller();
+    run_tests();
 }
