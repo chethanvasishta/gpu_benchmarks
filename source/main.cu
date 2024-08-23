@@ -47,6 +47,8 @@ __global__ void emptyKernel()
 
 void TIME_emptykernel_overhead()
 {
+    emptyKernel<<<1, 1>>>();
+
     TIMER_EVENTS_CREATE
     TIMER_EVENTS_RECORD_START
     
@@ -79,17 +81,17 @@ void time_allocation_overhead(int num_bytes, std::string label, int numIteration
     checkCudaErrors(cudaFree(d_dataVec[i]));
 }
 
-#define TIME_ALLOCATION_OVERHEAD(SIZE, DESC) \
+#define TIME_ALLOCATION_OVERHEAD(SIZE, DESC, NUM_ITERATIONS) \
     void TIME_##SIZE##byte_allocation_overhead()  \
     {                                         \
-        time_allocation_overhead(SIZE, DESC); \
+        time_allocation_overhead(SIZE, DESC, NUM_ITERATIONS); \
     }
 
-TIME_ALLOCATION_OVERHEAD(1, "allocate 1 byte")
-TIME_ALLOCATION_OVERHEAD(1024, "allocate 1 KB")
-TIME_ALLOCATION_OVERHEAD(kOneM, "allocate 1 MB")
-TIME_ALLOCATION_OVERHEAD(kHundredM, "allocate 100 MB")
-TIME_ALLOCATION_OVERHEAD(kOneG, "allocate 1 GB")
+TIME_ALLOCATION_OVERHEAD(1, "allocate 1 byte", kNumIterations)
+TIME_ALLOCATION_OVERHEAD(1024, "allocate 1 KB", kNumIterations)
+TIME_ALLOCATION_OVERHEAD(kOneM, "allocate 1 MB", kNumIterations)
+TIME_ALLOCATION_OVERHEAD(kHundredM, "allocate 100 MB", kNumIterations)
+TIME_ALLOCATION_OVERHEAD(kOneG, "allocate 1 GB", 1)
 
 // memory copy overheads
 
@@ -113,17 +115,17 @@ void time_copy_overhead(int num_bytes, std::string label, int numIterations = kN
     checkCudaErrors(cudaFree(d_data));
 }
 
-#define TIME_COPY_OVERHEAD(SIZE, DESC) \
+#define TIME_COPY_OVERHEAD(SIZE, DESC, ITERATIONS) \
     void TIME_##SIZE##byte_copy_overhead()  \
     {                                         \
-        time_copy_overhead(SIZE, DESC); \
+        time_copy_overhead(SIZE, DESC, ITERATIONS); \
     }
 
-TIME_COPY_OVERHEAD(1, "copy 1 byte")
-TIME_COPY_OVERHEAD(1024, "copy 1 KB")
-TIME_COPY_OVERHEAD(kOneM, "copy 1 MB")
-TIME_COPY_OVERHEAD(kHundredM, "copy 100 MB")
-TIME_COPY_OVERHEAD(kOneG, "copy 1 GB")
+TIME_COPY_OVERHEAD(1, "copy 1 byte", kNumIterations)
+TIME_COPY_OVERHEAD(1024, "copy 1 KB", kNumIterations)
+TIME_COPY_OVERHEAD(kOneM, "copy 1 MB", kNumIterations)
+TIME_COPY_OVERHEAD(kHundredM, "copy 100 MB", kNumIterations)
+TIME_COPY_OVERHEAD(kOneG, "copy 1 GB", 1)
 
 // min-max test
 // TODO: Optimize to use hierarchical min-max reduction
@@ -191,6 +193,8 @@ void run_tests()
     // min-max test
     TIME_minmax_kernel(kOneM, "find min max in a 1 MB array");
     TIME_minmax_kernel(kHundredM, "find min max in a 100 MB array");
+    TIME_minmax_kernel(kOneG, "find min max in a 1 GB array");
+
 }
 
 // TODO: Add more tests
